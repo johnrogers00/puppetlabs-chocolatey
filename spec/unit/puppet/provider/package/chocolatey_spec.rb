@@ -725,4 +725,43 @@ describe Puppet::Type.type(:package).provider(:chocolatey) do
       end
     end
   end
+  context 'provider features' do
+    it { is_expected.to be_version_ranges }
+  end
+  context 'supports version ranges' do
+    before :each do
+      allow(provider.class).to receive(:compiled_choco?).and_return(true)
+      allow(PuppetX::Chocolatey::ChocolateyCommon).to receive(:file_exists?).with('c:\dude\config\chocolatey.config').and_return(true)
+      allow(PuppetX::Chocolatey::ChocolateyCommon).to receive(:file_exists?).with('c:\dude\bin\choco.exe').and_return(true)
+      allow(PuppetX::Chocolatey::ChocolateyVersion).to receive(:version).and_return(first_compiled_choco_version)
+      # unhold is called in installs on compiled choco
+      allow(Puppet::Util::Execution).to receive(:execute)
+    end
+
+    context 'a version within the range is available' do
+      let(:all_versions) do
+        <<-'EOT'
+chocolatey|18.1
+chocolatey|18.2
+chocolatey|18.3
+chocolatey|18.9
+chocolatey|19.0
+      EOT
+      end
+
+      it 'returns the latest available package within the range' do
+        resource[:ensure] = '>18.1 <19'
+        #allow(provider).to receive(:all_versions_cmd).and_return(all_versions)
+        allow(provider).to receive(:execpipe).with(:all_versions_cmd).and_return(all_versions)
+        allow(provider).to receive(:latestcmd).and_return('chocolatey|18.1|19.0|false')
+        expect(provider).to receive(:chocolatey).with('upgrade', 'chocolatey', '--version', '1.2.3', '-y', nil)
+        provider.install
+      end
+    end
+    context 'a version within the range is not available' do
+      it 'returns an error' do
+        resource[:ensure] = '>18.1 <19'
+      end
+    end
+  end
 end
