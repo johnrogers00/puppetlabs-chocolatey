@@ -752,7 +752,7 @@ chocolatey|19.0
       it 'returns the latest available package within the range' do
         resource[:ensure] = '>18.1 <19'
         #allow(provider).to receive(:all_versions_cmd).and_return(all_versions)
-        allow(provider).to receive(:execpipe).with(:all_versions_cmd).and_return(all_versions)
+        allow(provider).to receive(:execpipe).with([nil, "list", "chocolatey", "-a", "-r"]).and_yield(all_versions)
         allow(provider).to receive(:latestcmd).and_return('chocolatey|18.1|19.0|false')
         expect(provider).to receive(:chocolatey).with('upgrade', 'chocolatey', '--version', '1.2.3', '-y', nil)
         provider.install
